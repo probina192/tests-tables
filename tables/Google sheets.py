@@ -29,6 +29,9 @@ class Group():
         self.saturday = []
         self.sunday = []
 
+    def __str__(self):
+        return self.group_name
+
 
 class Lesson():
     def __init__(self):
@@ -36,7 +39,11 @@ class Lesson():
         self.time = None
         self.lecturer = None
         self.auditorium = None
+        self.lesson_type = None
 
+    def __str__(self):
+        return (f"name: {self.lesson_name}, auditorium: {self.auditorium}, lecturer: {self.lecturer}"
+                f"time: {self.time}, lesson_type {self.lesson_type}")
 
 def main():
     """Shows basic usage of the Sheets API.
@@ -144,7 +151,7 @@ def table_parsing() -> list:
                 cur_lesson_time = elem[i]
 
             cur_group = students_groups[number_of_cur_group]
-            cur_group_class = Group(students_groups[number_of_cur_group])
+            cur_group_class = Group(students_groups[number_of_cur_group]) #создаются лишние группы
 
             if elem[i] == "":
                 empty_string_counter += 1
@@ -188,7 +195,7 @@ def table_parsing() -> list:
     return schedule_res_classes_version
 
 
-def lessons_split(schedule_res: list, students_groups: list): #функция для разделения нескольких пар, не допилил
+def lessons_split(schedule_res: list, students_groups: list):  #функция для разделения нескольких пар, не допилил
     week_days = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
     pattern_of_lecturer = r"\w+\s\w\.\w\."
     cur_lesson_dict = {"name": "", "time": "", "auditorium": "", "lecturer": "", "lesson_type": ""}
@@ -221,7 +228,7 @@ def lessons_split(schedule_res: list, students_groups: list): #функция д
     return schedule_res
 
 
-def get_group_names(schedule_res: list): #использовал для отладки
+def get_group_names(schedule_res: list):  #использовал для отладки
     groups = []
     for elem in schedule_res:
         groups.extend(list(elem.keys()))
@@ -229,4 +236,4 @@ def get_group_names(schedule_res: list): #использовал для отла
 
 
 schedule_res = table_parsing()
-print(schedule_res[0].monday[0].auditorium)
+print(schedule_res[0].tuesday)
