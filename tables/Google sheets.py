@@ -18,6 +18,26 @@ SAMPLE_SPREADSHEET_ID = "1305APD5kjZsE87yNSbORMDuDWF3QFjtDBqswHYD1dc0"
 SAMPLE_RANGE_NAME = "B18:AD69"  # придется парсить название листа
 
 
+class Group():
+    def __init__(self, group_name):
+        self.group_name = group_name
+        self.monday = []
+        self.tuesday = []
+        self.wednesday = []
+        self.thursday = []
+        self.friday = []
+        self.saturday = []
+        self.sunday = []
+
+
+class Lesson():
+    def __init__(self):
+        self.lesson_name = None
+        self.time = None
+        self.lecturer = None
+        self.auditorium = None
+
+
 def main():
     """Shows basic usage of the Sheets API.
   Prints values from a sample spreadsheet.
@@ -99,12 +119,15 @@ def table_parsing() -> list:
 
     empty_string_counter = 0
     cur_week_day = ""
-    cur_lesson_dict = {"name": "", "time": "", "auditorium": ""}
+    cur_lesson_dict = {"name": "", "time": "", "auditorium": "", "lecturer": "", "lesson_type": ""}
     pattern_of_auditorium = r"\d{3}|\d{3}(\s*\d*)*"
+    pattern_of_lecturer = r"\w+\s\w\.\w\."
     print("-------------------------------------")
     #print(schedule_res[0]["22БИ1"]["понедельник"]["lessons"].append(cur_lesson_dict))
     print(schedule_res)
+    schedule_res_classes_version = []
     print("-------------------------------------")
+    cur_lesson_class = Lesson()
     for elem in values:
         cur_lesson_time = ""
         number_of_cur_group = 0
@@ -121,19 +144,89 @@ def table_parsing() -> list:
                 cur_lesson_time = elem[i]
 
             cur_group = students_groups[number_of_cur_group]
+            cur_group_class = Group(students_groups[number_of_cur_group])
+
             if elem[i] == "":
                 empty_string_counter += 1
             elif elem[i] != "":  #потенциальные проблемы
                 empty_string_counter = 0
                 cur_lesson_dict["time"] = cur_lesson_time
+                cur_lesson_class.time = cur_lesson_time
                 if not re.fullmatch(pattern_of_auditorium, elem[i]):
-
-                    cur_lesson_dict["name"] = elem[i]
-
+                    cur_lesson_dict["name"] = elem[i]  #нужно довавить после обрезки в конце
+                    cur_lesson_class.lesson_name = elem[i]
                 if re.fullmatch(pattern_of_auditorium, elem[i]):
                     cur_lesson_dict["auditorium"] = elem[i]
+                    cur_lesson_class.auditorium = elem[i]
 
                     schedule_res[number_of_cur_group][cur_group][cur_week_day]["lessons"].append(cur_lesson_dict)
+                    if cur_week_day == "понедельник":
+                        cur_group_class.monday.append(cur_lesson_class)
+
+                    if cur_week_day == "вторник":
+                        cur_group_class.tuesday.append(cur_lesson_class)
+
+                    if cur_week_day == "среда":
+                        cur_group_class.wednesday.append(cur_lesson_class)
+
+                    if cur_week_day == "четверг":
+                        cur_group_class.thursday.append(cur_lesson_class)
+
+                    if cur_week_day == "пятница":
+                        cur_group_class.friday.append(cur_lesson_class)
+
+                    if cur_week_day == "суббота":
+                        cur_group_class.saturday.append(cur_lesson_class)
+
+                    if cur_week_day == "воскресенье":
+                        cur_group_class.sunday.append(cur_lesson_class)
+
+                    schedule_res_classes_version.append(cur_group_class)
+                    cur_lesson_class = Lesson()
                     number_of_cur_group += 1
-                    cur_lesson_dict = {"name": "", "time": "", "auditorium": ""}
+                    cur_lesson_dict = {"name": "", "time": "", "auditorium": "", "lecturer": "", "lesson_type": ""}
+    return schedule_res_classes_version
+
+
+def lessons_split(schedule_res: list, students_groups: list): #функция для разделения нескольких пар, не допилил
+    week_days = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
+    pattern_of_lecturer = r"\w+\s\w\.\w\."
+    cur_lesson_dict = {"name": "", "time": "", "auditorium": "", "lecturer": "", "lesson_type": ""}
+    pattern_of_lesson_type = r"лекция|семинар|НИС"  #возможно расширить число паттернов
+    for i in range(len(students_groups)):
+        cur_group_num = i
+        cur_group = students_groups[i]
+        for cur_week_day in week_days:
+            for j in range(len(schedule_res[i][cur_group][cur_week_day]["lessons"])):
+                if len((schedule_res[i][cur_group][cur_week_day]["lessons"][j]["auditorium"]).split()) != 1:
+                    cur_auditorium_list = (schedule_res[i][cur_group][cur_week_day]["lessons"][j]["auditorium"]).split()
+                    cur_lessons_name_list = (schedule_res[i][cur_group][cur_week_day]["lessons"][j]["name"]).split()
+                    cur_time = schedule_res[i][cur_group][cur_week_day]["lessons"][j]["time"]
+                    del schedule_res[i][cur_group][cur_week_day]["lessons"][j]
+                    for k in range(len(cur_auditorium_list)):
+                        cur_lecturer_match = re.search(pattern_of_lesson_type, cur_lessons_name_list[k])
+                        cur_lesson_type_match = re.search(pattern_of_lecturer, cur_lessons_name_list[k])
+                        cur_lesson_name_str = cur_lessons_name_list[k]
+                        if cur_lecturer_match is not None:
+                            cur_lesson_dict["lecturer"] = cur_lecturer_match[0]
+                            cur_lesson_name_str = cur_lesson_name_str.replace(cur_lecturer_match[0], "")
+                        if cur_lesson_type_match is not None:
+                            cur_lesson_dict["lesson_type"] = cur_lesson_type_match[0]
+                            cur_lesson_name_str = cur_lesson_name_str.replace(cur_lesson_type_match[0], "")
+                        cur_lesson_dict["name"] = cur_lesson_name_str  #добавляем после преобразования
+                        cur_lesson_dict["time"] = cur_time
+                        cur_lesson_dict["auditorium"] = cur_auditorium_list[k]
+                        schedule_res[cur_group_num][cur_group][cur_week_day]["lessons"].append(cur_lesson_dict)
+                        cur_lesson_dict = {"name": "", "time": "", "auditorium": "", "lecturer": "", "lesson_type": ""}
     return schedule_res
+
+
+def get_group_names(schedule_res: list): #использовал для отладки
+    groups = []
+    for elem in schedule_res:
+        groups.extend(list(elem.keys()))
+    return groups
+
+
+schedule_res = table_parsing()
+print(schedule_res[0].monday[0].auditorium)
