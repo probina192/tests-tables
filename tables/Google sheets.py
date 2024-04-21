@@ -192,7 +192,7 @@ def table_parsing() -> list:
                     cur_lesson_class = Lesson()
                     number_of_cur_group += 1
                     cur_lesson_dict = {"name": "", "time": "", "auditorium": "", "lecturer": "", "lesson_type": ""}
-    return schedule_res_classes_version
+    return schedule_res
 
 
 def lessons_split(schedule_res: list, students_groups: list):  #функция для разделения нескольких пар, не допилил
@@ -207,7 +207,7 @@ def lessons_split(schedule_res: list, students_groups: list):  #функция �
             for j in range(len(schedule_res[i][cur_group][cur_week_day]["lessons"])):
                 if len((schedule_res[i][cur_group][cur_week_day]["lessons"][j]["auditorium"]).split()) != 1:
                     cur_auditorium_list = (schedule_res[i][cur_group][cur_week_day]["lessons"][j]["auditorium"]).split()
-                    cur_lessons_name_list = (schedule_res[i][cur_group][cur_week_day]["lessons"][j]["name"]).split()
+                    cur_lessons_name_list = (schedule_res[i][cur_group][cur_week_day]["lessons"][j]["name"]).split() #проблема в разбиении строки, так как получается фигня
                     cur_time = schedule_res[i][cur_group][cur_week_day]["lessons"][j]["time"]
                     del schedule_res[i][cur_group][cur_week_day]["lessons"][j]
                     for k in range(len(cur_auditorium_list)):
@@ -228,12 +228,47 @@ def lessons_split(schedule_res: list, students_groups: list):  #функция �
     return schedule_res
 
 
+def transform_to_classes(schedule_res):
+    groups = get_group_names(schedule_res)
+    week_days = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
+    res = []
+    for i in range(len(groups)):
+        cur_group = Group(groups[i])
+        for j in week_days:
+            for k in range(len(schedule_res[i][groups[i]][j]["lessons"])):
+                cur_lesson = Lesson()
+                cur_lesson.lesson_name = schedule_res[i][groups[i]][j]["lessons"][k]["name"]
+                cur_lesson.time = schedule_res[i][groups[i]][j]["lessons"][k]["time"]
+                cur_lesson.auditorium = schedule_res[i][groups[i]][j]["lessons"][k]["auditorium"]
+                if j == "понедельник":
+                    cur_group.monday.append(cur_lesson)
+                if j == "вторник":
+                    cur_group.tuesday.append(cur_lesson)
+                if j == "среда":
+                    cur_group.wednesday.append(cur_lesson)
+                if j == "четверг":
+                    cur_group.thursday.append(cur_lesson)
+                if j == "пятница":
+                    cur_group.friday.append(cur_lesson)
+                if j == "суббота":
+                    cur_group.saturday.append(cur_lesson)
+                if j == "воскресенье":
+                    cur_group.sunday.append(cur_lesson)
+        res.append(cur_group)
+    return res
+
+
+
+
 def get_group_names(schedule_res: list):  #использовал для отладки
     groups = []
+
     for elem in schedule_res:
         groups.extend(list(elem.keys()))
     return groups
 
 
 schedule_res = table_parsing()
-print(schedule_res[0].tuesday)
+schedule_res = transform_to_classes(schedule_res)
+for elem in schedule_res:
+    print(elem, end=" ")
